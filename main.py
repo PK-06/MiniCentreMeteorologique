@@ -8,19 +8,6 @@ url = "http://192.168.0.63/" # URL de votre capteur
 conn = sqlite3.connect("sensor_data.db")
 cursor = conn.cursor()
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS sensor_data (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-    time TEXT NOT NULL,
-    luminosity REAL NOT NULL,
-    temperature REAL NOT NULL,
-    pressure REAL NOT NULL,
-    humidity REAL NOT NULL
-);
-""")
-conn.commit()
-
 while True:
     try:
         time.sleep(60)  # Pause d'une minute
