@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 99%;">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        header {
+            background-color: #4CAF50;
+            color: white;
+            text-align: center;
+            padding: 1rem 0;
+        }
+        nav {
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+        nav a {
+            color: rgb(0, 0, 0);
+            text-decoration: none;
+            font-size: 1rem;
+        }
+        nav a.active {
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 1rem;
+            background: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        .summary, .detail {
+            margin-bottom: 2rem;
+        }
+        .summary h2, .detail h2 {
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 0.5rem;
+        }
+        .chart {
+            height: 300px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+        .card {
+            background: #f9f9f9;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .card h3 {
+            color: #333;
+        }
+        .hidden {
+            display: none;
+        }
+        .card.big {
+            width: 300%;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="container">
+        <nav>
+            <a href="#" id="nav-temp" class="active"><h2>Température</h2></a>
+            <a href="#" id="nav-pressure"><h2>Pression</h2></a>
+            <a href="#" id="nav-humidity"><h2>Humidité</h2></a>
+            <a href="#" id="nav-luminosity"><h2>Luminosité</h2></a>
+        </nav>
+        <section id="section-temp" class="detail">
+            
+            <div class="grid">
+                <div class="card">
+                    <h3>Température maximale</h3>
+                    <p id="max-temp"></p>
+                </div>
+                <div class="card">
+                    <h3>Température minimale</h3>
+                    <p id="min-temp"></p>
+                </div>
+                <div class="card">
+                    <h3>Température moyenne</h3>
+                    <p id="avg-temp"></p>
+                </div>
+                <div class="card big">
+                    <canvas id="temp-chart" class="chart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="section-pressure" class="detail hidden">
+            
+            <div class="grid">
+                <div class="card">
+                    <h3>Pression maximale</h3>
+                    <p id="max-pressure"></p>
+                </div>
+                <div class="card">
+                    <h3>Pression minimale</h3>
+                    <p id="min-pressure"></p>
+                </div>
+                <div class="card">
+                    <h3>Pression moyenne</h3>
+                    <p id="avg-pressure"></p>
+                </div>
+                <div class="card big">
+                    <canvas id="pressure-chart" class="chart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="section-humidity" class="detail hidden">
+            
+            <div class="grid">
+                <div class="card">
+                    <h3>Humidité maximale</h3>
+                    <p id="max-humidity"></p>
+                </div>
+                <div class="card">
+                    <h3>Humidité minimale</h3>
+                    <p id="min-humidity"></p>
+                </div>
+                <div class="card">
+                    <h3>Humidité moyenne</h3>
+                    <p id="avg-humidity"></p>
+                </div>
+                <div class="card big">
+                    <canvas id="humidity-chart" class="chart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="section-luminosity" class="detail hidden">
+            
+            <div class="grid">
+                <div class="card">
+                    <h3>Luminosité maximale</h3>
+                    <p id="max-luminosity"></p>
+                </div>
+                <div class="card">
+                    <h3>Luminosité minimale</h3>
+                    <p id="min-luminosity"></p>
+                </div>
+                <div class="card">
+                    <h3>Luminosité moyenne</h3>
+                    <p id="avg-luminosity"></p>
+                </div>
+                <div class="card big">
+                    <canvas id="luminosity-chart" class="chart"></canvas>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1"></script>
+
+    <script>
+        let data = {{data | safe}};
+
+        function calculateStats(key) {
+            const values = data.map(entry => entry[key]);
+            const max = Math.max(...values);
+            const min = Math.min(...values);
+            const avg = (values.reduce((acc, val) => acc + val, 0) / values.length).toFixed(2);
+            return { max, min, avg };
+        }
+
+        function populateStats(section, key, unit) {
+            const stats = calculateStats(key);
+            document.getElementById(`max-${section}`).textContent = stats.max + ` ${unit}`;
+            document.getElementById(`min-${section}`).textContent = stats.min + ` ${unit}`;
+            document.getElementById(`avg-${section}`).textContent = stats.avg + ` ${unit}`;
+        }
+
+        function createChart(canvasId, label, key, minValue, maxValue) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    const labels = data.map(entry => new Date(entry.time)); 
+
+    const values = data.map(entry => entry[key]);
+
+    const timeDifferences = [];
+    for (let i = 1; i < labels.length; i++) {
+        timeDifferences.push(labels[i] - labels[i - 1]);
+    }
+    const avgInterval = timeDifferences.length > 0 ? timeDifferences.reduce((a, b) => a + b) / timeDifferences.length : 0;
+
+    let timeUnit = 'minute'; 
+    let displayFormat = 'dd/MM/yyyy HH:mm';
+
+    if (avgInterval > 60 * 60 * 1000) { 
+        timeUnit = 'hour';
+        displayFormat = 'dd/MM/yyyy HH:mm';
+    } else if (avgInterval > 24 * 60 * 60 * 1000) { 
+        timeUnit = 'day';
+        displayFormat = 'dd/MM/yyyy';
+    }
+
+    new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels,
+        datasets: [{
+            label,
+            data: values,
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1,
+            pointRadius: 0, 
+            pointHoverRadius: 5 
+        }]
+    },
+    options: {
+        responsive: true,
+        interaction: {
+            mode: 'nearest',
+            intersect: false,
+        },
+        scales: {
+            x: {
+                type: 'time', 
+                time: {
+                    unit: timeUnit, 
+                    displayFormats: {
+                        minute: displayFormat,
+                        hour: 'dd/MM/yyyy HH:mm',
+                        day: 'dd/MM/yyyy',
+                    }
+                },
+                title: { display: true, text: 'Time' }
+            },
+            y: {
+                min: minValue,
+                max: maxValue,
+                title: { display: true, text: label }
+            }
+        },
+        plugins: {
+            tooltip: {
+                enabled: true,
+                mode: 'index',
+                intersect: false
+            }
+        }
+    }
+});
+
+}
+
+
+        function switchSection(section) {
+            document.querySelectorAll('.detail').forEach(el => el.classList.add('hidden'));
+            document.querySelector(`#section-${section}`).classList.remove('hidden');
+            document.querySelectorAll('nav a').forEach(el => el.classList.remove('active'));
+            document.querySelector(`#nav-${section}`).classList.add('active');
+        }
+
+        function updateGraph() {
+            populateStats('temp', 'temperature', '°C');
+            populateStats('pressure', 'pressure', 'hPa');
+            populateStats('humidity', 'humidity', '%');
+            populateStats('luminosity', 'luminosity', 'lx');
+
+            createChart('temp-chart', 'Temperature (°C)', 'temperature', 0, 35);
+            createChart('pressure-chart', 'Pressure (hPa)', 'pressure', 980, 1100);
+            createChart('humidity-chart', 'Humidity (%)', 'humidity', 0, 100);
+            createChart('luminosity-chart', 'Luminosity (lx)', 'luminosity', 0, 1024);
+        }
+
+        updateGraph()
+
+        document.getElementById('nav-temp').addEventListener('click', () => switchSection('temp'));
+        document.getElementById('nav-pressure').addEventListener('click', () => switchSection('pressure'));
+        document.getElementById('nav-humidity').addEventListener('click', () => switchSection('humidity'));
+        document.getElementById('nav-luminosity').addEventListener('click', () => switchSection('luminosity'));
+
+        switchSection('temp');
+    </script>
+</body>
+</html>
